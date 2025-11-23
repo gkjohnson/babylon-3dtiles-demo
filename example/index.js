@@ -3,30 +3,29 @@ import { BabylonTilesRenderer } from '../src/BabylonTilesRenderer.js';
 import GUI from 'lil-gui';
 
 const TILESET_URL = 'https://raw.githubusercontent.com/NASA-AMMOS/3DTilesSampleData/master/msl-dingo-gap/0528_0260184_to_s64o256_colorize/0528_0260184_to_s64o256_colorize/0528_0260184_to_s64o256_colorize_tileset.json';
-window.BABYLON = BABYLON;
+
 const canvas = document.getElementById( 'renderCanvas' );
 const engine = new BABYLON.Engine( canvas, true );
 engine.setHardwareScalingLevel( 1 / window.devicePixelRatio );
+let tiles = null;
 
-let tilesRenderer = null;
-
-// GUI state
 const params = {
-	enableUpdate: true,
+	enabled: true,
 	visibleTiles: 0,
 };
 
-// Setup GUI
 const gui = new GUI();
-gui.add( params, 'enableUpdate' ).name( 'Enable Update' );
-gui.add( params, 'visibleTiles' ).name( 'Visible Tiles' ).listen().disable();
+gui.add( params, 'enabled' );
+gui.add( params, 'visibleTiles' ).listen().disable();
 
 async function createScene() {
 
+	// TODO: Babylon uses left handed coordinate system but our data is in a right handed one.
+	// The coordinate system flag may need to be accounted for when parsing the data
 	const scene = new BABYLON.Scene( engine );
 	scene.useRightHandedSystem = true;
 
-	// Camera
+	// Camera controls
 	const camera = new BABYLON.ArcRotateCamera(
 		'camera',
 		- Math.PI / 2,
@@ -37,32 +36,28 @@ async function createScene() {
 	);
 	camera.attachControl( canvas, true );
 	camera.minZ = 0.1;
-	camera.maxZ = 5000;
+	camera.maxZ = 1000;
 
-	// Load 3D Tiles
-	tilesRenderer = new BabylonTilesRenderer( TILESET_URL, scene );
-
-	// Rotate tileset so Z+ points up (tileset has Z+ as down)
-	tilesRenderer.group.rotation.x = Math.PI / 2;
+	// instantiate tiles renderer and orient the group so it's Z+ down
+	tiles = new BabylonTilesRenderer( TILESET_URL, scene );
+	tiles.group.rotation.x = Math.PI / 2;
 
 	return scene;
 
 }
 
-// Create scene and start render loop
+// render
 createScene().then( scene => {
 
 	scene.onBeforeRenderObservable.add( () => {
 
+		if ( params.enabled ) {
 
-		if ( params.enableUpdate ) {
-
-			tilesRenderer.update();
+			tiles.update();
 
 		}
 
-		window.TILES = tilesRenderer;
-		params.visibleTiles = tilesRenderer.visibleTiles.size;
+		params.visibleTiles = tiles.visibleTiles.size;
 
 	} );
 
@@ -74,7 +69,7 @@ createScene().then( scene => {
 
 } );
 
-// Handle window resize
+// resize
 window.addEventListener( 'resize', () => {
 
 	engine.resize();
