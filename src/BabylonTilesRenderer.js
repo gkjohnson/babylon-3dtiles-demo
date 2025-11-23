@@ -235,15 +235,18 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 		}
 
-		// TODO:
-		// - check if the bounding boxes are correctly formed in the local coordinate frame of the root
-		// - transform the frustum matrices into the local frame frame of the root for checking
-		// - ensure scaling is accounted for
-		// - confirm transforms / visibility using wire bounding boxes for the box bounds
-		// - Fix local transforms
+		const worldToTiles = this.group.getWorldMatrix().clone().invert();
+		const cameraPositionInTiles = BABYLON.Vector3.TransformCoordinates( camera.globalPosition, worldToTiles );
+		let planesMatrix = this.group.getWorldMatrix().clone();
+		planesMatrix.multiply( camera.getViewMatrix() );
+		planesMatrix.multiply( camera.getProjectionMatrix() );
 
-		const frustumPlanes = BABYLON.Frustum.GetPlanes( camera.getTransformationMatrix( true ) );
-		const distance = boundingVolume.distanceToPoint( camera.globalPosition );
+		const frustumPlanes = BABYLON.Frustum.GetPlanes( camera.getTransformationMatrix( true ) ).map( plane => {
+
+			return plane.transform( worldToTiles );
+
+		} );
+		const distance = boundingVolume.distanceToPoint( cameraPositionInTiles );
 
 		let error;
 		if ( isOrthographic ) {

@@ -43,7 +43,7 @@ async function createScene() {
 	tilesRenderer = new BabylonTilesRenderer( TILESET_URL, scene );
 
 	// Rotate tileset so Z+ points up (tileset has Z+ as down)
-	// tilesRenderer.group.rotation.x = Math.PI / 2;
+	tilesRenderer.group.rotation.x = Math.PI / 2;
 
 	return scene;
 
