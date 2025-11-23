@@ -12,8 +12,6 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 		this.scene = scene;
 		this.group = new BABYLON.TransformNode( 'tiles-root', scene );
-
-		// Up-axis correction rotation matrix for glTF files
 		this._upRotationMatrix = BABYLON.Matrix.Identity();
 
 	}
@@ -23,30 +21,16 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 		return super.loadRootTileSet( ...args )
 			.then( root => {
 
-				// Cache the gltf tile set rotation matrix based on the up-axis
-				// 3D Tiles spec allows specifying the up-axis in asset.gltfUpAxis
+				// cache the gltf tile set rotation matrix
 				const { asset } = root;
 				const upAxis = asset && asset.gltfUpAxis || 'y';
-
-				// gltfUpAxis specifies the up-axis in the glTF content (default is Y-up).
-				// 3D Tiles uses Z-up convention, so we rotate glTF content to align
-				// its up-axis with Z-up. This matches Three.js behavior.
 				switch ( upAxis.toLowerCase() ) {
 
 					case 'x':
-						// X-up to Z-up: rotate around Y axis by -90 degrees
 						BABYLON.Matrix.RotationYToRef( - Math.PI / 2, this._upRotationMatrix );
 						break;
 
-					case 'z':
-						// Z-up already matches 3D Tiles convention, no rotation needed
-						// (legacy/deprecated flag for old tilesets)
-						this._upRotationMatrix = BABYLON.Matrix.Identity();
-						break;
-
 					case 'y':
-					default:
-						// Y-up to Z-up: rotate around X axis by +90 degrees
 						BABYLON.Matrix.RotationXToRef( Math.PI / 2, this._upRotationMatrix );
 						break;
 
@@ -66,22 +50,19 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 		const transform = BABYLON.Matrix.Identity();
 		if ( tile.transform ) {
 
-			// 3D Tiles uses column-major order, same as Babylon.js
-			BABYLON.Matrix.FromArrayToRef( tile.transform, 0, transform );
+			// 3d tiles uses column major
+			BABYLON.Matrix.FromValuesToRef( ...tile.transform, transform );
 
 		}
 
 		if ( parentTile ) {
 
-			// Premultiply: result = parent * this
-			const parent = parentTile.cached.transform;
-			parent.multiplyToRef( transform, transform );
+			// parentTransform * transform
+			transform.multiplyToRef( parentTile.cached.transform, transform );
 
 		}
 
 		const transformInverse = BABYLON.Matrix.Invert( transform );
-
-		// Parse bounding volume
 		const boundingVolume = new TileBoundingVolume();
 		if ( 'sphere' in tile.boundingVolume ) {
 
@@ -113,7 +94,7 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 		const workingPath = LoaderUtils.getWorkingPath( uri );
 		const fetchOptions = this.fetchOptions;
 
-		const cachedTransform = cached.transform;
+		const tileTransform = cached.transform;
 		const upRotationMatrix = this._upRotationMatrix;
 
 		let result = null;
@@ -151,53 +132,47 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 		}
 
-		// Exit early if aborted
+		const group = result.scene;
+		group.setEnabled( false );
+
+		// apply the tile's cached transform to the loaded scene
+		group
+			.computeWorldMatrix( true )
+			.multiply( tileTransform )
+			.decompose( group.scaling, group.rotationQuaternion, group.position );
+
+		// exit early if a new request has already started
 		if ( abortSignal.aborted ) {
 
-			// Dispose loaded content
-			if ( result && result.container ) {
-
-				result.container.dispose();
-
-			}
+			result.container.dispose();
 			return;
 
 		}
 
-		const root = result.scene;
-
-		// Apply the tile's cached transform to the loaded scene
-		// Premultiply: result = cachedTransform * current
-		const currentMatrix = root.computeWorldMatrix( true );
-		const newMatrix = cachedTransform.multiply( currentMatrix );
-		newMatrix.decompose( root.scaling, root.rotationQuaternion, root.position );
-
-		// Store references in the cache (tile starts unparented/invisible)
-		cached.group = root;
+		cached.group = group;
 		cached.container = result.container;
 
 	}
 
 	disposeTile( tile ) {
 
-		const cached = tile.cached;
+		super.disposeTile( tile );
 
-		// Dispose the AssetContainer which cleans up all associated resources
-		// (meshes, materials, textures, geometries, etc.)
+		const cached = tile.cached;
 		if ( cached.container ) {
 
 			cached.container.dispose();
 			cached.container = null;
+			cached.group = null;
 
 		}
-
-		cached.group = null;
 
 	}
 
 	setTileVisible( tile, visible ) {
 
-		const group = tile.cached.group;
+		const cached = tile.cached;
+		const group = cached.group;
 		if ( ! group ) {
 
 			return;
@@ -222,132 +197,41 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 	calculateBytesUsed( tile ) {
 
-		const cached = tile.cached;
-		if ( ! cached.container ) {
-
-			return 0;
-
-		}
-
-		const dedupeSet = new Set();
-		let totalBytes = 0;
-
-		// Sum geometry bytes from all meshes
-		for ( const mesh of cached.container.meshes ) {
-
-			const geometry = mesh.geometry;
-			if ( ! geometry || dedupeSet.has( geometry ) ) {
-
-				continue;
-
-			}
-
-			dedupeSet.add( geometry );
-
-			// Sum all vertex buffer sizes
-			const vertexBuffers = geometry.getVertexBuffers();
-			if ( vertexBuffers ) {
-
-				for ( const kind in vertexBuffers ) {
-
-					const buffer = vertexBuffers[ kind ];
-					if ( buffer && ! dedupeSet.has( buffer._buffer ) ) {
-
-						dedupeSet.add( buffer._buffer );
-						totalBytes += buffer._buffer.getData().byteLength;
-
-					}
-
-				}
-
-			}
-
-			// Add index buffer size
-			const indices = geometry.getIndices();
-			if ( indices ) {
-
-				totalBytes += indices.byteLength || indices.length * 4;
-
-			}
-
-		}
-
-		// Sum texture bytes from all materials
-		for ( const material of cached.container.materials ) {
-
-			const textures = material.getActiveTextures();
-			for ( const texture of textures ) {
-
-				if ( dedupeSet.has( texture ) ) {
-
-					continue;
-
-				}
-
-				dedupeSet.add( texture );
-
-				const size = texture.getSize();
-				if ( size.width && size.height ) {
-
-					// Estimate 4 bytes per pixel (RGBA), ignoring actual texture format
-					let bytes = size.width * size.height * 4;
-
-					// Account for mipmaps (~1.33x)
-					if ( texture.generateMipMaps ) {
-
-						bytes *= 4 / 3;
-
-					}
-
-					totalBytes += bytes;
-
-				}
-
-			}
-
-		}
-
-		return totalBytes;
+		// TODO: return the estimated amount of bytes used by the renderer
+		return 1;
 
 	}
 
 	calculateTileViewError( tile, target ) {
 
+		const { scene } = this;
+
 		const cached = tile.cached;
 		const boundingVolume = cached.boundingVolume;
-		const camera = this.scene.activeCamera;
+		const camera = scene.activeCamera;
 
-		if ( ! camera ) {
-
-			target.inView = false;
-			target.error = Infinity;
-			target.distanceFromCamera = Infinity;
-			return;
-
-		}
-
-		// Get resolution from engine
-		const engine = this.scene.getEngine();
+		// get the render resolution
+		const engine = scene.getEngine();
 		const width = engine.getRenderWidth();
 		const height = engine.getRenderHeight();
 
-		// Get camera info
+		// get projection camera info
 		const projection = camera.getProjectionMatrix();
-		const p = projection.m;
-		const isOrthographic = p[ 15 ] === 1;
+		const projectionElements = projection.m;
+		const isOrthographic = projectionElements[ 15 ] === 1;
 
-		// Calculate SSE denominator or pixel size
+		// calculate SSE denominator or pixel size
 		let sseDenominator;
 		let pixelSize;
 		if ( isOrthographic ) {
 
-			const w = 2 / p[ 0 ];
-			const h = 2 / p[ 5 ];
+			const w = 2 / projectionElements[ 0 ];
+			const h = 2 / projectionElements[ 5 ];
 			pixelSize = Math.max( h / height, w / width );
 
 		} else {
 
-			sseDenominator = ( 2 / p[ 5 ] ) / height;
+			sseDenominator = ( 2 / projectionElements[ 5 ] ) / height;
 
 		}
 
@@ -356,17 +240,10 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 		// - transform the frustum matrices into the local frame frame of the root for checking
 		// - ensure scaling is accounted for
 		// - confirm transforms / visibility using wire bounding boxes for the box bounds
+		// - Fix local transforms
 
-		// Get camera position
-		const cameraPosition = camera.globalPosition.clone();
-
-		// Get frustum planes from view-projection matrix
-		const viewMatrix = camera.getViewMatrix();
-		const viewProjection = viewMatrix.multiply( projection );
-		const frustumPlanes = BABYLON.Frustum.GetPlanes( viewProjection );
-
-		// Calculate distance and error
-		const distance = boundingVolume.distanceToPoint( cameraPosition );
+		const frustumPlanes = BABYLON.Frustum.GetPlanes( camera.getTransformationMatrix( true ) );
+		const distance = boundingVolume.distanceToPoint( camera.globalPosition );
 
 		let error;
 		if ( isOrthographic ) {

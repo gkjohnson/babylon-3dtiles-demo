@@ -1,12 +1,11 @@
-// TileBoundingVolume for Babylon.js
-// Supports sphere and oriented bounding box (OBB) volumes from 3D Tiles spec
-
 import * as BABYLON from 'babylonjs';
 import { OBB } from './OBB.js';
 
-const _vecX = new BABYLON.Vector3();
-const _vecY = new BABYLON.Vector3();
-const _vecZ = new BABYLON.Vector3();
+const _vecX = /* @__PURE__ */ new BABYLON.Vector3();
+const _vecY = /* @__PURE__ */ new BABYLON.Vector3();
+const _vecZ = /* @__PURE__ */ new BABYLON.Vector3();
+const _scale = /* @__PURE__ */ new BABYLON.Vector3();
+const _empty = /* @__PURE__ */ new BABYLON.Vector3();
 
 export class TileBoundingVolume {
 
@@ -19,19 +18,13 @@ export class TileBoundingVolume {
 
 	setSphereData( x, y, z, radius, transform ) {
 
-		// Create a BoundingSphere and transform it
-		const center = new BABYLON.Vector3( x, y, z );
+		const sphere = new BABYLON.BoundingSphere( _empty, _empty );
+
+		const center = sphere.centerWorld.set( x, y, z );
 		BABYLON.Vector3.TransformCoordinatesToRef( center, transform, center );
 
-		// Extract scale from transform to adjust radius
-		const scale = new BABYLON.Vector3();
-		transform.decompose( scale );
-		const maxScale = Math.max( Math.abs( scale.x ), Math.abs( scale.y ), Math.abs( scale.z ) );
-
-		// Create BoundingSphere with world-space values
-		const sphere = new BABYLON.BoundingSphere( center, center );
-		sphere.centerWorld.copyFrom( center );
-		sphere.radiusWorld = radius * maxScale;
+		transform.decompose( _scale, null, null );
+		sphere.radiusWorld = radius * Math.max( Math.abs( _scale.x ), Math.abs( _scale.y ), Math.abs( _scale.z ) );;
 
 		this.sphere = sphere;
 
@@ -39,11 +32,9 @@ export class TileBoundingVolume {
 
 	setObbData( data, transform ) {
 
-		// 3D Tiles OBB format: [cx, cy, cz, xx, xy, xz, yx, yy, yz, zx, zy, zz]
-		// center (3) + x half-axis (3) + y half-axis (3) + z half-axis (3)
 		const obb = new OBB();
 
-		// Get the extents of the bounds in each axis
+		// get the extents of the bounds in each axis
 		_vecX.set( data[ 3 ], data[ 4 ], data[ 5 ] );
 		_vecY.set( data[ 6 ], data[ 7 ], data[ 8 ] );
 		_vecZ.set( data[ 9 ], data[ 10 ], data[ 11 ] );
@@ -56,79 +47,89 @@ export class TileBoundingVolume {
 		_vecY.normalize();
 		_vecZ.normalize();
 
-		// Handle the case where the box has a dimension of 0 in one axis
-		if ( scaleX === 0 ) BABYLON.Vector3.CrossToRef( _vecY, _vecZ, _vecX );
-		if ( scaleY === 0 ) BABYLON.Vector3.CrossToRef( _vecX, _vecZ, _vecY );
-		if ( scaleZ === 0 ) BABYLON.Vector3.CrossToRef( _vecX, _vecY, _vecZ );
+		// handle the case where the box has a dimension of 0 in one axis
+		if ( scaleX === 0 ) {
 
-		// Create the oriented frame that the box exists in
-		// Note: Babylon uses row-major order, Three.js uses column-major
-		const obbTransform = BABYLON.Matrix.FromValues(
-			_vecX.x, _vecX.y, _vecX.z, 0,
-			_vecY.x, _vecY.y, _vecY.z, 0,
-			_vecZ.x, _vecZ.y, _vecZ.z, 0,
-			data[ 0 ], data[ 1 ], data[ 2 ], 1,
-		);
-		// Premultiply: result = transform * obbTransform
-		obb.transform = transform.multiply( obbTransform );
+			BABYLON.Vector3.CrossToRef( _vecY, _vecZ, _vecX );
 
-		// Scale the box by the extents
+		}
+
+		if ( scaleY === 0 ) {
+
+			BABYLON.Vector3.CrossToRef( _vecX, _vecZ, _vecY );
+
+		}
+
+		if ( scaleZ === 0 ) {
+
+			BABYLON.Vector3.CrossToRef( _vecX, _vecY, _vecZ );
+
+		}
+
+		// create the oriented frame that the box exists in
+		// Note that Babylon seems to take data in column major ordering rather than row-major like three.js
+		// (despite the docs seeming to imply that it's row major) so we transpose afterward
+		obb.transform = BABYLON.Matrix
+			.FromValues(
+				_vecX.x, _vecY.x, _vecZ.x, data[ 0 ],
+				_vecX.y, _vecY.y, _vecZ.y, data[ 1 ],
+				_vecX.z, _vecY.z, _vecZ.z, data[ 2 ],
+				0, 0, 0, 1,
+			)
+			.transpose()
+			.multiply( transform );
+
+		// scale the box by the extents
 		obb.min.set( - scaleX, - scaleY, - scaleZ );
 		obb.max.set( scaleX, scaleY, scaleZ );
 		obb.update();
-
 		this.obb = obb;
 
 	}
 
 	distanceToPoint( point ) {
 
+		const { sphere, obb } = this;
+
 		let sphereDistance = - Infinity;
 		let obbDistance = - Infinity;
 
-		if ( this.sphere ) {
+		if ( sphere ) {
 
-			const dist = BABYLON.Vector3.Distance( point, this.sphere.centerWorld ) - this.sphere.radiusWorld;
-			// Clamp to 0 if inside the sphere
-			sphereDistance = Math.max( dist, 0 );
-
-		}
-
-		if ( this.obb ) {
-
-			obbDistance = this.obb.distanceToPoint( point );
+			sphereDistance = BABYLON.Vector3.Distance( point, sphere.centerWorld ) - sphere.radiusWorld;
+			sphereDistance = Math.max( sphereDistance, 0 );
 
 		}
 
-		// Return the larger distance (more conservative)
-		return Math.max( sphereDistance, obbDistance );
+		if ( obb ) {
+
+			obbDistance = obb.distanceToPoint( point );
+
+		}
+
+		// return the further distance of the two volumes
+		return sphereDistance > obbDistance ? sphereDistance : obbDistance;
 
 	}
 
 	intersectsFrustum( frustumPlanes ) {
 
-		if ( this.sphere ) {
+		const { sphere, obb } = this;
 
-			if ( ! this.sphere.isInFrustum( frustumPlanes ) ) {
+		if ( sphere && ! sphere.isInFrustum( frustumPlanes ) ) {
 
-				return false;
-
-			}
+			return false;
 
 		}
 
-		if ( this.obb ) {
+		if ( obb && ! obb.intersectsFrustum( frustumPlanes ) ) {
 
-			if ( ! this.obb.intersectsFrustum( frustumPlanes ) ) {
-
-				return false;
-
-			}
+			return false;
 
 		}
 
-		// Return true if we have at least one volume and it passed the test
-		return Boolean( this.sphere || this.obb );
+		// if we don't have a sphere or obb then just say we did intersect
+		return Boolean( sphere || obb );
 
 	}
 

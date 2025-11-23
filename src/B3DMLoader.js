@@ -1,6 +1,3 @@
-// B3DM Loader for Babylon.js
-// Based on the B3DMLoaderBase from 3d-tiles-renderer/core
-
 import { B3DMLoaderBase } from '3d-tiles-renderer/core';
 import { GLTFLoader } from './GLTFLoader.js';
 
@@ -17,41 +14,25 @@ export class B3DMLoader extends B3DMLoaderBase {
 	async parse( buffer ) {
 
 		const b3dm = super.parse( buffer );
-		const { batchTable, featureTable } = b3dm;
 
-		// Use GLTFLoader to parse the embedded glTF
-		const gltfLoader = new GLTFLoader( this.scene );
-		gltfLoader.workingPath = this.workingPath;
-		gltfLoader.fetchOptions = this.fetchOptions;
-		if ( this.adjustmentTransform ) {
+		const { scene, workingPath, fetchOptions, adjustmentTransform } = this;
 
-			gltfLoader.adjustmentTransform = this.adjustmentTransform;
+		// init gltf loader
+		const gltfLoader = new GLTFLoader( scene );
+		gltfLoader.workingPath = workingPath;
+		gltfLoader.fetchOptions = fetchOptions;
+		if ( adjustmentTransform ) {
+
+			gltfLoader.adjustmentTransform = adjustmentTransform;
 
 		}
 
+		// parse the file
 		const result = await gltfLoader.parse( b3dm.glbBytes );
-		const root = result.scene;
-
-		// Apply RTC_CENTER offset if present
-		const rtcCenter = featureTable.getData( 'RTC_CENTER', 1, 'FLOAT', 'VEC3' );
-		if ( rtcCenter ) {
-
-			root.position.x += rtcCenter[ 0 ];
-			root.position.y += rtcCenter[ 1 ];
-			root.position.z += rtcCenter[ 2 ];
-
-		}
-
-		// Attach metadata to the root node
-		root.metadata = {
-			batchTable,
-			featureTable,
-		};
-
+		const gltfScene = result.scene;
 		return {
-			scene: root,
-			batchTable,
-			featureTable,
+			...b3dm,
+			scene: gltfScene,
 			container: result.container,
 		};
 
