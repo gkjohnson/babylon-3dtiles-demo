@@ -71,6 +71,7 @@ export class OBB {
 
 	intersectsFrustum( frustumPlanes ) {
 
+		// TODO: implement a more robust OBB / Frustum check. This one includes false positives.
 		return BABYLON.BoundingBox.IsInFrustum( this.points, frustumPlanes );
 
 	}

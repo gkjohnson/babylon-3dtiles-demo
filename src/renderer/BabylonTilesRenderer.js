@@ -4,6 +4,7 @@ import { B3DMLoader } from '../loaders/B3DMLoader.js';
 import { GLTFLoader } from '../loaders/GLTFLoader.js';
 import { TileBoundingVolume } from '../math/TileBoundingVolume.js';
 
+// TODO: implementation does not support left handed coordinate system
 export class BabylonTilesRenderer extends TilesRendererBase {
 
 	constructor( url, scene ) {
@@ -16,10 +17,12 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 	}
 
-	// TODO: move these to the base class
+	// TODO: implement these with Babylon constructs
 	addEventListener() {}
 
 	removeEventListener() {}
+
+	dispatchEvent() {}
 
 	loadRootTileSet( ...args ) {
 
@@ -209,6 +212,7 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 	calculateTileViewError( tile, target ) {
 
+		// TODO: cache frustum planes etc to improve performance
 		const { scene } = this;
 
 		const cached = tile.cached;
