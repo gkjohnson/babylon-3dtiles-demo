@@ -5,4 +5,3 @@ Minimum implementation for a Babylon JS renderer based extending the classes fro
 [Babylon Dingo Gap](http://gkjohnson.githu.io/babylon-3dtiles-demo/example/bundle/index.js)
 
 [Babylon Google Photorealistic Tiles](http://gkjohnson.githu.io/babylon-3dtiles-demo/example/bundle/googleMapsAerial.js)
-
