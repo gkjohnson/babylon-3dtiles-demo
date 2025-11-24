@@ -18,8 +18,8 @@ gui.add( params, 'enabled' );
 gui.add( params, 'visibleTiles' ).name( 'Visible Tiles' ).listen().disable();
 gui.add( params, 'errorTarget', 1, 100 );
 
-const babylonCanvas = document.getElementById( 'babylonCanvas' );
-const engine = new BABYLON.Engine( babylonCanvas, true );
+const canvas = document.getElementById( 'renderCanvas' );
+const engine = new BABYLON.Engine( canvas, true );
 engine.setHardwareScalingLevel( 1 / window.devicePixelRatio );
 
 let tiles = null;
@@ -40,7 +40,7 @@ async function createBabylonScene() {
 		new BABYLON.Vector3( 0, 0, 0 ),
 		scene,
 	);
-	camera.attachControl( babylonCanvas, true );
+	camera.attachControl( canvas, true );
 	camera.minZ = 1;
 	camera.maxZ = 6378.137;
 	camera.wheelPrecision = 0.001;
