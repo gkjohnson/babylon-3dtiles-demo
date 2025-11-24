@@ -1,5 +1,5 @@
 import * as BABYLON from 'babylonjs';
-import { BabylonTilesRenderer } from '../src/BabylonTilesRenderer.js';
+import { BabylonTilesRenderer } from '../src/index.js';
 import GUI from 'lil-gui';
 
 const TILESET_URL = 'https://raw.githubusercontent.com/NASA-AMMOS/3DTilesSampleData/master/msl-dingo-gap/0528_0260184_to_s64o256_colorize/0528_0260184_to_s64o256_colorize/0528_0260184_to_s64o256_colorize_tileset.json';

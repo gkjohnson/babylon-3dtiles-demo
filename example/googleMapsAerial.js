@@ -1,5 +1,5 @@
 import * as BABYLON from 'babylonjs';
-import { BabylonTilesRenderer } from '../src/BabylonTilesRenderer.js';
+import { BabylonTilesRenderer } from '../src/index.js';
 import { CesiumIonAuthPlugin } from '3d-tiles-renderer/plugins';
 import GUI from 'lil-gui';
 
