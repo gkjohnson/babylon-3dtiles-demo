@@ -2,7 +2,7 @@
   "name": "babylon-3dtiles-renderer",
   "version": "1.0.0",
   "description": "A 3d-tiles renderer for Babylon.js based on 3d-tiles-renderer.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Garrett Johnson <garrett.kjohnson@gmail.com>",
   "type": "module",
   "main": "src/index.js",
