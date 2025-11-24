@@ -56,7 +56,7 @@ async function createBabylonScene() {
 	tiles.errorTarget = params.errorTarget;
 
 	// position so Tokyo Tower is visible
-	tiles.group.rotation.set(  -0.6223599766516501, 8.326672684688674e-17, -0.8682210177215869 );
+	tiles.group.rotation.set( - 0.6223599766516501, 8.326672684688674e-17, - 0.8682210177215869 );
 	tiles.group.position.set( 0, - 6370877.772522855 - 150, 20246.934953993885 );
 
 	return scene;

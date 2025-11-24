@@ -24,7 +24,7 @@ export class TileBoundingVolume {
 		BABYLON.Vector3.TransformCoordinatesToRef( center, transform, center );
 
 		transform.decompose( _scale, null, null );
-		sphere.radiusWorld = radius * Math.max( Math.abs( _scale.x ), Math.abs( _scale.y ), Math.abs( _scale.z ) );;
+		sphere.radiusWorld = radius * Math.max( Math.abs( _scale.x ), Math.abs( _scale.y ), Math.abs( _scale.z ) );
 
 		this.sphere = sphere;
 
