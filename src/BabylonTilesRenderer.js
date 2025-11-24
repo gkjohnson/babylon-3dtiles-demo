@@ -1,7 +1,7 @@
 import { TilesRendererBase, LoaderUtils } from '3d-tiles-renderer/core';
 import * as BABYLON from 'babylonjs';
-import { B3DMLoader } from './B3DMLoader.js';
-import { GLTFLoader } from './GLTFLoader.js';
+import { B3DMLoader } from './loaders/B3DMLoader.js';
+import { GLTFLoader } from './loaders/GLTFLoader.js';
 import { TileBoundingVolume } from './TileBoundingVolume.js';
 
 export class BabylonTilesRenderer extends TilesRendererBase {
