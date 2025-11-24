@@ -16,6 +16,11 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 	}
 
+	// TODO: move these to the base class
+	addEventListener() {}
+
+	removeEventListener() {}
+
 	loadRootTileSet( ...args ) {
 
 		return super.loadRootTileSet( ...args )
@@ -212,8 +217,9 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 
 		// get the render resolution
 		const engine = scene.getEngine();
-		const width = engine.getRenderWidth();
-		const height = engine.getRenderHeight();
+		const hardwareScaling = engine.getHardwareScalingLevel();
+		const width = engine.getRenderWidth() * hardwareScaling;
+		const height = engine.getRenderHeight() * hardwareScaling;
 
 		// get projection camera info
 		const projection = camera.getProjectionMatrix();

@@ -42,6 +42,9 @@ export class GLTFLoader extends LoaderBase {
 		// retrieve the primary scene
 		const root = container.meshes[ 0 ];
 
+		// ensure rotationQuaternion is initialized so we can decompose the matrix
+		root.rotationQuaternion = BABYLON.Quaternion.Identity();
+
 		// adjust the transform the model by the necessary rotation correction
 		adjustmentTransform
 			.multiply( root.computeWorldMatrix( true ) )
