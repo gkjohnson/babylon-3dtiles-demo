@@ -44,7 +44,7 @@ async function createBabylonScene() {
 	camera.minZ = 1;
 	camera.maxZ = 6378.137;
 	camera.wheelPrecision = 0.001;
-	camera.setPosition( new BABYLON.Vector3( 500, 500, 500 ) );
+	camera.setPosition( new BABYLON.Vector3( 500, 300, - 500 ) );
 
 	// tiles
 	tiles = new BabylonTilesRenderer( null, scene );
