@@ -2,7 +2,6 @@ import { LoaderBase } from '3d-tiles-renderer/core';
 import * as BABYLON from 'babylonjs';
 import 'babylonjs-loaders';
 
-let _fileId = 0;
 export class GLTFLoader extends LoaderBase {
 
 	constructor( scene ) {
@@ -13,7 +12,7 @@ export class GLTFLoader extends LoaderBase {
 
 	}
 
-	async parse( buffer ) {
+	async parse( buffer, uri ) {
 
 		const { scene, workingPath, adjustmentTransform } = this;
 
@@ -27,11 +26,9 @@ export class GLTFLoader extends LoaderBase {
 
 		// Use unique filename to prevent texture caching issues
 		// TODO: What is the correct method for loading gltf files in babylon?
-		// TODO: We should pass the original URL to the loader so we can use a correct file
-		// name for loading from a cache
 		const container = await BABYLON.SceneLoader.LoadAssetContainerAsync(
 			rootUrl,
-			new File( [ buffer ], `tile_${ _fileId ++ }.glb` ),
+			new File( [ buffer ], uri ),
 			scene,
 			null,
 			'.glb',

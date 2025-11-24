@@ -11,7 +11,7 @@ export class B3DMLoader extends B3DMLoaderBase {
 
 	}
 
-	async parse( buffer ) {
+	async parse( buffer, uri ) {
 
 		const b3dm = super.parse( buffer );
 
@@ -28,7 +28,7 @@ export class B3DMLoader extends B3DMLoaderBase {
 		}
 
 		// parse the file
-		const result = await gltfLoader.parse( b3dm.glbBytes );
+		const result = await gltfLoader.parse( b3dm.glbBytes, uri );
 		const gltfScene = result.scene;
 		return {
 			...b3dm,

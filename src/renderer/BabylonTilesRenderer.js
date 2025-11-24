@@ -114,7 +114,7 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 				loader.fetchOptions = fetchOptions;
 				loader.adjustmentTransform = upRotationMatrix.clone();
 
-				result = await loader.parse( buffer );
+				result = await loader.parse( buffer, uri );
 				break;
 
 			}
@@ -127,7 +127,7 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 				loader.fetchOptions = fetchOptions;
 				loader.adjustmentTransform = upRotationMatrix.clone();
 
-				result = await loader.parse( buffer );
+				result = await loader.parse( buffer, uri );
 				break;
 
 			}
