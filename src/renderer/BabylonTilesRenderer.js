@@ -248,10 +248,6 @@ export class BabylonTilesRenderer extends TilesRendererBase {
 		// calculate the frustum planes and distances in local tile coordinates
 		const worldToTiles = this.group.getWorldMatrix().clone().invert();
 		const cameraPositionInTiles = BABYLON.Vector3.TransformCoordinates( camera.globalPosition, worldToTiles );
-		let planesMatrix = this.group.getWorldMatrix().clone();
-		planesMatrix.multiply( camera.getViewMatrix() );
-		planesMatrix.multiply( camera.getProjectionMatrix() );
-
 		const distance = boundingVolume.distanceToPoint( cameraPositionInTiles );
 		const frustumPlanes = BABYLON.Frustum.GetPlanes( camera.getTransformationMatrix( true ) ).map( plane => {
 
